@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Discord.Commands;
 
-namespace WalrusBotTest.Modules
+namespace WalrusBot.Modules
 {
     public class Misc : ModuleBase<SocketCommandContext>
     {
