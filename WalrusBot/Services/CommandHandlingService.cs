@@ -15,6 +15,7 @@ namespace WalrusBot.Services
         private readonly CommandService _commands;
         private IServiceProvider _provider;
 
+        #region Command Handling Service
         public CommandHandlingService(IServiceProvider provider, DiscordSocketClient client, CommandService commands)
         {
             _client = client;
@@ -29,10 +30,12 @@ namespace WalrusBot.Services
         public async Task InitializeAsync(IServiceProvider provider)
         {
             _provider = provider;
-            await _commands.AddModulesAsync(Assembly.GetEntryAssembly());
+            await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), provider);
             // Add additional initialization code here...
         }
+        #endregion
 
+        #region Event Handlers
         private async Task MessageReceived(SocketMessage rawMessage)
         {
             // Ignore system messages and messages from bots
@@ -40,7 +43,7 @@ namespace WalrusBot.Services
             if (message.Source != MessageSource.User) return;
 
             int argPos = 0;
-            if (!message.HasStringPrefix(Program._config["prefix"], ref argPos) && !message.HasMentionPrefix(_client.CurrentUser, ref argPos)) return;
+            if (!message.HasStringPrefix(Program._config["prefix"], ref argPos) && !message.HasMentionPrefix(_client.CurrentUser, ref argPos) ) return;
 
             var context = new SocketCommandContext(_client, message);
             var result = await _commands.ExecuteAsync(context, argPos, _provider);
@@ -81,5 +84,6 @@ namespace WalrusBot.Services
                     break;
             }
         }
+        #endregion
     }
 }
