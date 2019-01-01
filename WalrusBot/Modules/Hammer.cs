@@ -9,7 +9,7 @@ namespace WalrusBot.Modules
 {
     [DontAutoLoad]
     [Group("hammer")]
-    class Hammer : ModuleBase<SocketCommandContext>
+    public class Hammer : ModuleBase<SocketCommandContext>
     {
     }
 }

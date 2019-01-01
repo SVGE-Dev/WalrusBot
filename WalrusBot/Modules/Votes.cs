@@ -11,7 +11,7 @@ namespace WalrusBot.Modules
     [DontAutoLoad]
     [Group("meeting")]
     [RequireUserPermission(GuildPermission.Administrator)]
-    class Meeting : ModuleBase<SocketCommandContext>
+    public class Meeting : ModuleBase<SocketCommandContext>
     {
         [Command]
         public async Task DefaultVoteAsync()
@@ -57,6 +57,12 @@ namespace WalrusBot.Modules
             // get the current voice channel of the user
             // check there's an associated meeting
             // find the vote with "voteName" in that meeting
+        }
+
+        [Command("getvotes")]
+        public async Task GetVotesAsync()  // returns details on all of the votes that are open to the user
+        {
+
         }
         #endregion
 

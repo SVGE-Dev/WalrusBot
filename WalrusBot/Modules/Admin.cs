@@ -12,7 +12,7 @@ namespace WalrusBot.Modules
     [Group("admin")]
     [RequireUserPermission(GuildPermission.Administrator)]
     [RequireContext(ContextType.Guild)]
-    class Admin : ModuleBase<SocketCommandContext>
+    public class Admin : ModuleBase<SocketCommandContext>
     {
         [Command]
         public async Task DefaultAdminAsync()
