@@ -14,6 +14,10 @@ using Google.Apis.Util.Store;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4.Data;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
+using Google.Apis.Gmail.v1;
+using Google.Apis.Gmail.v1.Data;
+using MimeKit.Encodings;
 
 namespace WalrusBot.Modules
 {
@@ -26,10 +30,6 @@ namespace WalrusBot.Modules
 
         public static SecureString UserDataEncryptKey = new SecureString();  // this is horrendous
         private static Random random = new Random();
-        private static string[] Scopes = { SheetsService.Scope.SpreadsheetsReadonly };
-        private static string ApplicationName = "Walrus Bot";
-        private static string spreadsheetId = "11ogdfFitHG6OLQ6-EjWmTpHQXFs_s6N1hjQDt6u1O8M";
-        private static string sheetRange = "Sheet_a!A2:E";
 
         #region Help
         [Command("help")]
@@ -59,61 +59,41 @@ namespace WalrusBot.Modules
             }
             await ReplyAsync("Sending email..!");
             // need to do a quick check here that it's a valid email address
-            // check that the file exists
+            // check that the HTML file exists
 
-            var msg = new MimeMessage();
-            msg.From.Add(new MailboxAddress("SVGE", Program._config["accGmail"]));
-            msg.To.Add(new MailboxAddress(Context.User.Username, emailAddr));
-            msg.Subject = "SVGE: Your verification code!";
-            BodyBuilder body = new BodyBuilder();
-            using (StreamReader sr = new StreamReader(Program._config["verifEmail"]))
+            var gmailService = new GmailService(new BaseClientService.Initializer()
             {
-                body.HtmlBody = sr.ReadToEnd().Replace("xXxCODEHERExXx", RandomString(16));
-            }
-            msg.Body = body.ToMessageBody();
-
-            using (SmtpClient client = new SmtpClient())
-            {
-                client.ServerCertificateValidationCallback = (s, c, h, e) => true;  // literatlly not idea what this does...
-                await client.ConnectAsync("smtp.gmail.com", 465, true);
-                await client.AuthenticateAsync(Program._config["accGmail"], Program._config["pwGmail"]);
-                await client.SendAsync(msg);
-                await client.DisconnectAsync(true);  // idk if awaiting all of this is a good idea...
-            }
-            await ReplyAsync("Email sent!");
-
-            UserCredential credential;
-            using (var fs = new FileStream("credentials.json", FileMode.Open, FileAccess.Read))
-            {
-                string credPath = "token.json";
-                credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
-                    GoogleClientSecrets.Load(fs).Secrets, Scopes, "user", CancellationToken.None, new FileDataStore(credPath, true)).Result;
-            }
-
-            var service = new SheetsService(new BaseClientService.Initializer()
-            {
-                HttpClientInitializer = credential,
-                ApplicationName = ApplicationName
+                HttpClientInitializer = Program.Credential,
+                ApplicationName = Program._config["appName"]
             });
 
-            //Test code
-            SpreadsheetsResource.ValuesResource.GetRequest request =
-                    service.Spreadsheets.Values.Get(spreadsheetId, sheetRange);
-            ValueRange response = request.Execute();
-            IList<IList<Object>> values = response.Values;
-            if (values != null && values.Count > 0)
+            // basic message info
+            MimeMessage message = new MimeMessage();
+            message.To.Add(new MailboxAddress(Context.User.Username.ToString(), emailAddr));
+            message.From.Add(new MailboxAddress(Program.Config["gmailFromName"], Program.Config["gmailFromAddr"]));
+            message.Subject = "SVGE Discord Verification Email!";
+            // HTML body of email
+            var body = new BodyBuilder();
+            string htmlString = await File.OpenText(Program.Config["verifyEmailHtmlName"]).ReadToEndAsync();
+            body.HtmlBody = htmlString.Replace("xXxCODEHERExXx", RandomString(16));
+            message.Body = body.ToMessageBody();
+
+            var gMessage = new Message() { Raw = MimeToGmail(message.ToString()) };
+            try
             {
-                Console.WriteLine("Name, Major");
-                foreach (var row in values)
-                {
-                    // Print columns A and E, which correspond to indices 0 and 4.
-                    Console.WriteLine("{0}, {1}", row[0], row[4]);
-                }
+                await gmailService.Users.Messages.Send(gMessage, "me").ExecuteAsync();
             }
-            else
+            catch (Exception e)
             {
-                Console.WriteLine("No data found.");
+                await ReplyAsync("There was an issue with sending your email! Try again in a few minutes, and if the problem persists then please contact a committee member.");
+                Console.WriteLine($"Exception when sending an email: {e.ToString()}");
             }
+            await ReplyAsync("Verification email sent! Once you've got your code, send it to me with *svge!verify code* ***[your-code-here]***.");
+        }
+
+        [Command("code")]
+        public async Task CodeVerifyAsync(string code)
+        {
         }
 
         #endregion
@@ -131,6 +111,16 @@ namespace WalrusBot.Modules
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
             return new string(Enumerable.Repeat(chars, length)
               .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+
+        private static string MimeToGmail(string msg)
+        {
+            byte[] bytes = System.Text.Encoding.UTF8.GetBytes(msg);
+
+            return System.Convert.ToBase64String(bytes)
+                .Replace('+', '-')
+                .Replace('/', '_')
+                .Replace("=", "");
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using Discord;
+﻿/*using Discord;
 using Discord.Commands;
 using System.Threading.Tasks;
 using Discord.WebSocket;
@@ -172,3 +172,4 @@ namespace WalrusBot.Modules
         #endregion
     }
 }
+*/

@@ -1,4 +1,4 @@
-﻿using Discord;
+﻿/*using Discord;
 using Discord.Commands;
 using System;
 using System.Collections.Generic;
@@ -51,7 +51,7 @@ namespace WalrusBot.Modules
             // ensure that everyone who is verified has the student role
             // assign relavent role to those who have membership
             // remove all roles from people who aren't members
-        }
+     /*   }
 
         [Command("listroles")]
         
@@ -73,3 +73,4 @@ namespace WalrusBot.Modules
         }
     }
 }
+*/

@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+﻿/* System.Threading.Tasks;
 using Discord.Commands;
 
 namespace WalrusBot.Modules
@@ -23,3 +23,4 @@ namespace WalrusBot.Modules
             => await ReplyAsync("https://www.svge.susu.org");
     }
 }
+*/

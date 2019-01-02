@@ -65,6 +65,12 @@
     <Reference Include="Google.Apis.Core, Version=1.36.1.0, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
       <HintPath>..\packages\Google.Apis.Core.1.36.1\lib\net45\Google.Apis.Core.dll</HintPath>
     </Reference>
+    <Reference Include="Google.Apis.Drive.v3, Version=1.36.1.1442, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>..\packages\Google.Apis.Drive.v3.1.36.1.1442\lib\net45\Google.Apis.Drive.v3.dll</HintPath>
+    </Reference>
+    <Reference Include="Google.Apis.Gmail.v1, Version=1.36.1.1431, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
+      <HintPath>..\packages\Google.Apis.Gmail.v1.1.36.1.1431\lib\net45\Google.Apis.Gmail.v1.dll</HintPath>
+    </Reference>
     <Reference Include="Google.Apis.PlatformServices, Version=1.36.1.0, Culture=neutral, PublicKeyToken=4b01fa6e34db77ab, processorArchitecture=MSIL">
       <HintPath>..\packages\Google.Apis.1.36.1\lib\net45\Google.Apis.PlatformServices.dll</HintPath>
     </Reference>
@@ -244,9 +250,6 @@
     <Content Include="config.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="config.template.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
     <None Include="client_id.json" />
     <None Include="credentials.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -259,9 +262,6 @@
     </Content>
     <Content Include="TemplateLicense.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="VerificationEmail.html">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

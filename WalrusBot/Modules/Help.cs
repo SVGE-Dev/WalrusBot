@@ -14,7 +14,7 @@ namespace WalrusBot.Modules
         [Command]
         public async Task HelpListAsync()
         {
-
+            await ReplyAsync("HELP");
         }
     }
 }
