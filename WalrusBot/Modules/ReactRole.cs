@@ -1,7 +1,7 @@
-﻿/*using Discord;
+﻿using Discord;
 using Discord.Commands;
-using System.Threading.Tasks;
 using Discord.WebSocket;
+using System.Threading.Tasks;
 using System.Linq;
 using System;
 using System.Collections.Generic;
@@ -69,7 +69,7 @@ namespace WalrusBot.Modules
                 builder.AddField(r.Name, $"{r.EmoName} {r.Role}", true);
             }
 
-            var c = Context.Client.GetChannel(channel.Id) as IMessageChannel;
+            var c = Context.Client.GetChannel(channel.Id) as ISocketMessageChannel;
             IUserMessage msg = await c.SendMessageAsync("", false, builder.Build());
 
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
@@ -151,7 +151,7 @@ namespace WalrusBot.Modules
         {
             IGuildUser user = reaction.User.Value as IGuildUser;
 
-            if (!user.RoleIds.Contains<ulong>(Convert.ToUInt64(Program._config["RID_Student"]) ) ) return;
+            if (!user.RoleIds.Contains<ulong>(Convert.ToUInt64(Program.Config["roleID_student"]) ) ) return;
             
             EmbedField field = embed.Fields.First(f => f.Value.StartsWith(reaction.Emote.ToString()));
             int atIndex = field.Value.IndexOf('@');
@@ -172,4 +172,3 @@ namespace WalrusBot.Modules
         #endregion
     }
 }
-*/

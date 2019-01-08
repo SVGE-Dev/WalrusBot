@@ -23,8 +23,8 @@ namespace WalrusBot.Services
             _provider = provider;
 
             _client.MessageReceived += MessageReceived;
-            //_client.ReactionAdded += ReactionAdded;
-            //_client.ReactionRemoved += ReactionRemoved;
+            _client.ReactionAdded += ReactionAdded;
+            _client.ReactionRemoved += ReactionRemoved;
         }
 
         public async Task InitializeAsync(IServiceProvider provider)
@@ -53,7 +53,7 @@ namespace WalrusBot.Services
                 await context.Channel.SendMessageAsync(result.ToString());
         }
 
-        /*
+        
         private async Task ReactionAdded(Cacheable<IUserMessage, ulong> msg, ISocketMessageChannel channel, SocketReaction reaction)
         {
             IMessage message = await msg.GetOrDownloadAsync();
@@ -84,7 +84,7 @@ namespace WalrusBot.Services
                 default:
                     break;
             }
-        }*/
+        }
         #endregion
     }
 }

@@ -31,11 +31,16 @@ namespace WalrusBot
         static void Main(string[] args)
             => new Program().MainAsync().GetAwaiter().GetResult();
 
-        private DiscordSocketClient _client;
-        public static IConfiguration _config;
         public static ConcurrentDictionary<string, string> Config = new ConcurrentDictionary<string, string>(Environment.ProcessorCount * 2, 503);  // capacity has to be a prime for some reason
-        public static UserCredential Credential;  // fuck thread safety
-        private static string[] Scopes = {
+        public static ConcurrentDictionary<int, List<string>> UserData = new ConcurrentDictionary<int, List<string>>(Environment.ProcessorCount * 2, 503);
+        public static SheetsService Sheets;
+        public static GmailService Gmail;
+        public static DriveService Drive;
+
+        private DiscordSocketClient _client;
+        private static IConfiguration _config;
+        private UserCredential _credential;  // fuck thread safety
+        private string[] _scopes = {
             SheetsService.Scope.Spreadsheets,
             DriveService.Scope.DriveReadonly,
             GmailService.Scope.GmailSend
@@ -45,31 +50,32 @@ namespace WalrusBot
         {
             _config = BuildConfig();
 
-            #region Google Auth
+            #region Google Auth and services
+            // Get credentials and auth token
             using (var fs = new FileStream(_config["credFile"], FileMode.Open, FileAccess.Read))
             {
-                Credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
-                    GoogleClientSecrets.Load(fs).Secrets, Scopes, "user", CancellationToken.None, new FileDataStore(_config["credPath"], true)).Result;
+                _credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
+                    GoogleClientSecrets.Load(fs).Secrets, _scopes, "user", CancellationToken.None, new FileDataStore(_config["credPath"], true)).Result;
             }
-            var sheetService = new SheetsService(new BaseClientService.Initializer()
+            // Initialize services
+            Sheets = new SheetsService(new BaseClientService.Initializer()
             {
-                HttpClientInitializer = Credential,
+                HttpClientInitializer = _credential,
                 ApplicationName = _config["appName"]
             });
-
-            SpreadsheetsResource.ValuesResource.GetRequest request =
-                    sheetService.Spreadsheets.Values.Get(_config["dataSheetId"], _config["configRange"]);
-            ValueRange response = await request.ExecuteAsync();
-            IList<IList<Object>> values = response.Values;
-            if (values != null && values.Count > 0)
+            Gmail = new GmailService(new BaseClientService.Initializer()
             {
-                Console.WriteLine("Config:");
-                foreach (var row in values)
-                {
-                    Console.WriteLine($"    {row[0]}: {row[1]}");
-                    Config.TryAdd(row[0] as string, row[1] as string);
-                }
-            }
+                HttpClientInitializer = _credential,
+                ApplicationName = _config["appName"]
+            });
+            Drive = new DriveService(new BaseClientService.Initializer()
+            {
+                HttpClientInitializer = _credential,
+                ApplicationName = _config["appName"]
+            });
+            // Download config information
+            await UpdateConfig(true);
+            await UpdateUserData();
             Console.WriteLine();
             #endregion
 
@@ -110,21 +116,14 @@ namespace WalrusBot
                 }
                 foreach (char c in pw)
                 {
-                    //Verify.UserDataEncryptKey.AppendChar(c);
+                    Verify.UserDataEncryptKey.AppendChar(c);
                 }
                 Console.WriteLine("\n");
             }
             #endregion
 
             #region Download the HTML file. 
-            // eventually this'll all go into a nice subroutine
-            var driveService = new DriveService(new BaseClientService.Initializer()
-            {
-                HttpClientInitializer = Credential,
-                ApplicationName = _config["appName"],
-            });
-
-            var expReq = driveService.Files.Export(Config["verifyEmailHtmlId"], "text/plain");
+            var expReq = Drive.Files.Export(Config["verifyEmailHtmlId"], "text/plain");
             var stream = new MemoryStream();
             expReq.MediaDownloader.ProgressChanged += (IDownloadProgress progress)
                 =>
@@ -175,7 +174,7 @@ namespace WalrusBot
 
 
 
-         #region Config Builders
+        #region Config Builders
         private IServiceProvider ConfigureServices()
         {
             return new ServiceCollection()
@@ -198,6 +197,45 @@ namespace WalrusBot
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("config.json")
                 .Build();
+        }
+        #endregion
+
+        #region Updaters
+        public static async Task UpdateConfig(bool print)
+        {
+            SpreadsheetsResource.ValuesResource.GetRequest request =
+                                Sheets.Spreadsheets.Values.Get(_config["dataSheetId"], _config["configRange"]);
+            ValueRange response = await request.ExecuteAsync();
+            IList<IList<Object>> values = response.Values;
+            if (values != null && values.Count > 0)
+            {
+                if(print) Console.WriteLine("Config:");
+                foreach (var row in values)
+                {
+                    if(print)Console.WriteLine($"    {row[0]}: {row[1]}");
+                    Config.TryAdd(row[0] as string, row[1] as string);
+                }
+            }
+        }
+
+        public static async Task UpdateUserData()
+        {
+            SpreadsheetsResource.ValuesResource.GetRequest request =
+                                Sheets.Spreadsheets.Values.Get(Config["userInfoId"], Config["userInfoRange"]);
+            ValueRange response = await request.ExecuteAsync();
+            IList<IList<Object>> values = response.Values;
+            if (values != null && values.Count > 0)
+            {
+                for(int i = 1; i < values.Count; i++)
+                {
+                    List<string> row = new List<string>();
+                    foreach(string cell in values[i])
+                    {
+                        row.Add(cell);
+                    }
+                    UserData.TryAdd(i, row);
+                }
+            }
         }
         #endregion
 
