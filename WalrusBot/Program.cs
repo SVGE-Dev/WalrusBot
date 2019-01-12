@@ -163,6 +163,7 @@ namespace WalrusBot
 
             await _client.LoginAsync(TokenType.Bot, Config["botToken"]);
             await _client.StartAsync();
+            await _client.SetGameAsync("Half-Life 3");
 
             await Task.Delay(-1);
 
