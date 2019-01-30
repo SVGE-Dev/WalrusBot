@@ -21,5 +21,9 @@ namespace WalrusBot.Modules
         [Alias("site")]
         public async Task Website()
             => await ReplyAsync("https://www.svge.susu.org");
+
+        [Command("bork")]
+        public async Task Bork()
+            => await ReplyAsync("Woof woof", true);
     }
 }
