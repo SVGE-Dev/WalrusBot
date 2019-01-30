@@ -74,8 +74,8 @@ namespace WalrusBot
                 ApplicationName = _config["appName"]
             });
             // Download config information
-            await UpdateConfig(true);
-            await UpdateUserData();
+            await PullConfigAsync(true);
+            await PullUserDataAsync();
             Console.WriteLine();
             #endregion
 
@@ -202,7 +202,7 @@ namespace WalrusBot
         #endregion
 
         #region Updaters
-        public static async Task UpdateConfig(bool print)
+        public static async Task PullConfigAsync(bool print)
         {
             SpreadsheetsResource.ValuesResource.GetRequest request =
                                 Sheets.Spreadsheets.Values.Get(_config["dataSheetId"], _config["configRange"]);
@@ -219,7 +219,7 @@ namespace WalrusBot
             }
         }
 
-        public static async Task UpdateUserData()
+        public static async Task PullUserDataAsync()
         {
             SpreadsheetsResource.ValuesResource.GetRequest request =
                                 Sheets.Spreadsheets.Values.Get(Config["userInfoId"], Config["userInfoRange"]);
