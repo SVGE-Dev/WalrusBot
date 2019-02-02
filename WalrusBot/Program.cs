@@ -25,8 +25,9 @@ namespace WalrusBot
         public async Task MainAsync()
         {
             _config = BuildConfig();
-
+            
             #region Encryption Password
+            /*
             using (MD5 hasher = MD5.Create())  // idk if I could just pass a new MD5 to the hashToString but eh I'll leave it like this for now
             {
                 string pw;
@@ -66,7 +67,7 @@ namespace WalrusBot
                     Verify.UserDataEncryptKey.AppendChar(c);
                 }
                 Console.WriteLine("\n");
-            }
+            }*/
             #endregion
 
             _client = new DiscordSocketClient();
