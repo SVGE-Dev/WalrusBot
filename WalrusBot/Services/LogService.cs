@@ -5,7 +5,7 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 
-namespace WalrusBot.Services
+namespace WalrusBot
 {
     public class LogService
     {

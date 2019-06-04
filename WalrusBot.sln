@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.106
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WalrusBot", "WalrusBot\WalrusBot.csproj", "{EFE5FE15-92C9-48B6-8811-8FA3E37846CA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Discord.Net-Example", "C:\Users\Dief\Desktop\src\Discord.Net-Example.csproj", "{CB7B9041-F425-41C1-A311-F2ADAE5110E5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,10 +11,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{EFE5FE15-92C9-48B6-8811-8FA3E37846CA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EFE5FE15-92C9-48B6-8811-8FA3E37846CA}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EFE5FE15-92C9-48B6-8811-8FA3E37846CA}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EFE5FE15-92C9-48B6-8811-8FA3E37846CA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CB7B9041-F425-41C1-A311-F2ADAE5110E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CB7B9041-F425-41C1-A311-F2ADAE5110E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CB7B9041-F425-41C1-A311-F2ADAE5110E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CB7B9041-F425-41C1-A311-F2ADAE5110E5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

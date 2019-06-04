@@ -6,9 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using WalrusBot.Services;
 using System.Security.Cryptography;
-using WalrusBot.Modules;
 using System.Text;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Util.Store;
@@ -27,149 +25,34 @@ namespace WalrusBot
 {
     class Program
     {
-        #region Main
-        static void Main(string[] args)
-            => new Program().MainAsync().GetAwaiter().GetResult();
-
-        public static ConcurrentDictionary<string, string> Config = new ConcurrentDictionary<string, string>(Environment.ProcessorCount * 2, 503);  // capacity has to be a prime for some reason
-        public static ConcurrentDictionary<int, List<string>> UserData = new ConcurrentDictionary<int, List<string>>(Environment.ProcessorCount * 2, 503);
-        public static SheetsService Sheets;
-        public static GmailService Gmail;
-        public static DriveService Drive;
-
-        private DiscordSocketClient _client;
-        private static IConfiguration _config;
-        private UserCredential _credential;  // fuck thread safety
-        private string[] _scopes = {
+        public static SheetsExpanded Config;
+        private DiscordSocketClient discordClient;
+        private static IConfiguration localConfig;
+        private UserCredential userCredential;
+        private string[] scopes = {
             SheetsService.Scope.Spreadsheets,
             DriveService.Scope.DriveReadonly,
             GmailService.Scope.GmailSend
         };
 
+        #region Main
+        static void Main(string[] args)
+            => new Program().MainAsync().GetAwaiter().GetResult();
+
         public async Task MainAsync()
         {
-            _config = BuildConfig();
+            localConfig = BuildConfig();
 
-            #region Google Auth and services
-            // Get credentials and auth token
-            using (var fs = new FileStream(_config["credFile"], FileMode.Open, FileAccess.Read))
+            using (var fs = new FileStream(localConfig["credFile"], FileMode.Open, FileAccess.Read))
             {
-                _credential = GoogleWebAuthorizationBroker.AuthorizeAsync(
-                    GoogleClientSecrets.Load(fs).Secrets, _scopes, "user", CancellationToken.None, new FileDataStore(_config["credPath"], true)).Result;
+                userCredential = GoogleWebAuthorizationBroker.AuthorizeAsync(
+                        GoogleClientSecrets.Load(fs).Secrets, scopes, "user", CancellationToken.None, new FileDataStore(localConfig["credPath"], true)).Result;
             }
-            // Initialize services
-            Sheets = new SheetsService(new BaseClientService.Initializer()
-            {
-                HttpClientInitializer = _credential,
-                ApplicationName = _config["appName"]
-            });
-            Gmail = new GmailService(new BaseClientService.Initializer()
-            {
-                HttpClientInitializer = _credential,
-                ApplicationName = _config["appName"]
-            });
-            Drive = new DriveService(new BaseClientService.Initializer()
-            {
-                HttpClientInitializer = _credential,
-                ApplicationName = _config["appName"]
-            });
-            // Download config information
-            await PullConfigAsync(true);
-            await PullUserDataAsync();
-            Console.WriteLine();
-            #endregion
 
-            #region Encryption Password
-            using (MD5 hasher = MD5.Create())  // idk if I could just pass a new MD5 to the hashToString but eh I'll leave it like this for now
-            {
-                string pw;
-                if (!System.IO.File.Exists("password.txt"))   //  eventually put this into data! on the spreadsheet, and means I can get rid of "system"
-                {
-                    string confirm;
-                    bool pass = false;
-                    do
-                    {
-                        Console.Write("Enter a new password: ");
-                        pw = getPassword();
-                        Console.Write("\nPlease confirm this password: ");
-                        confirm = getPassword();
-                        pass = pw == confirm;
-                        if (!pass) Console.Write("\nPasswords do not match!\n\n");
-                    } while (!pass);
-
-                    using (StreamWriter sw = System.IO.File.CreateText("password.txt"))
-                    {
-                        sw.WriteLine(hashToString(hasher, pw));
-                    }
-                }
-                else
-                {
-                    string hash = System.IO.File.OpenText("password.txt").ReadLine();
-                    bool pass = false;
-                    do
-                    {
-                        Console.Write("Please enter the password: ");
-                        pw = getPassword();
-                        pass = hashToString(hasher, pw) == hash;  // this probably eats memory oopsy
-                        if (!pass) Console.WriteLine("\nThat password does not match the previous password used! Please try again");
-                    } while (!pass);
-                }
-                foreach (char c in pw)
-                {
-                    Verify.UserDataEncryptKey.AppendChar(c);
-                }
-                Console.WriteLine("\n");
-            }
-            #endregion
-
-            #region Download the HTML file. 
-            var expReq = Drive.Files.Export(Config["verifyEmailHtmlId"], "text/plain");
-            var stream = new MemoryStream();
-            expReq.MediaDownloader.ProgressChanged += (IDownloadProgress progress)
-                =>
-            {
-                switch (progress.Status)
-                {
-                    case DownloadStatus.Downloading:
-                        {
-                            Console.WriteLine(progress.BytesDownloaded);
-                            break;
-                        }
-                    case DownloadStatus.Completed:
-                        {
-                            Console.WriteLine("Verification email file has been downloaded!\n");
-                            break;
-                        }
-                    case DownloadStatus.Failed:
-                        {
-                            Console.WriteLine("The download of the verification email file has failed! D: Try adding it manually!");
-                            break;
-                        }
-                }
-            };
-            await expReq.DownloadAsync(stream);
-
-            using (FileStream fs = new FileStream(Config["verifyEmailHtmlName"], FileMode.OpenOrCreate, FileAccess.Write))
-            {
-                stream.WriteTo(fs);
-            }
-            #endregion
-
-            _client = new DiscordSocketClient();
-
-            var services = ConfigureServices();
-            services.GetRequiredService<LogService>();
-            await services.GetRequiredService<CommandHandlingService>().InitializeAsync(services);
-
-            await _client.LoginAsync(TokenType.Bot, Config["botToken"]);
-            await _client.StartAsync();
-            await _client.SetGameAsync("Half-Life 3");
+            SheetsExpanded.InitializeGServices(ref userCredential, localConfig["appName"]);
+            Config = new SheetsExpanded(localConfig["configSheetID"]);
 
             await Task.Delay(-1);
-
-            #region subscribe to updates to desired files, including the html one
-            //ChangesResource.WatchRequest wr = new ChangesResource.WatchRequest();
-            #endregion
         }
         #endregion
 
@@ -180,14 +63,14 @@ namespace WalrusBot
         {
             return new ServiceCollection()
                 // Base
-                .AddSingleton(_client)
+                .AddSingleton(discordClient)
                 .AddSingleton<CommandService>()
                 .AddSingleton<CommandHandlingService>()
                 // Logging
                 .AddLogging()
                 .AddSingleton<LogService>()
                 // Extra
-                .AddSingleton(_config)
+                .AddSingleton(localConfig)
                 // Add additional services here...
                 .BuildServiceProvider();
         }
@@ -201,47 +84,8 @@ namespace WalrusBot
         }
         #endregion
 
-        #region Updaters
-        public static async Task PullConfigAsync(bool print)
-        {
-            SpreadsheetsResource.ValuesResource.GetRequest request =
-                                Sheets.Spreadsheets.Values.Get(_config["dataSheetId"], _config["configRange"]);
-            ValueRange response = await request.ExecuteAsync();
-            IList<IList<Object>> values = response.Values;
-            if (values != null && values.Count > 0)
-            {
-                if(print) Console.WriteLine("Config:");
-                foreach (var row in values)
-                {
-                    if(print)Console.WriteLine($"    {row[0]}: {row[1]}");
-                    Config.TryAdd(row[0] as string, row[1] as string);
-                }
-            }
-        }
-
-        public static async Task PullUserDataAsync()
-        {
-            SpreadsheetsResource.ValuesResource.GetRequest request =
-                                Sheets.Spreadsheets.Values.Get(Config["userInfoId"], Config["userInfoRange"]);
-            ValueRange response = await request.ExecuteAsync();
-            IList<IList<Object>> values = response.Values;
-            if (values != null && values.Count > 0)
-            {
-                for(int i = 1; i < values.Count; i++)
-                {
-                    List<string> row = new List<string>();
-                    foreach(string cell in values[i])
-                    {
-                        row.Add(cell);
-                    }
-                    UserData.TryAdd(i, row);
-                }
-            }
-        }
-        #endregion
-
         #region Utility Functions
-        private string getPassword()
+        private static string getPassword()
         {
             ConsoleKeyInfo key;
             string pwd = "";
@@ -261,7 +105,7 @@ namespace WalrusBot
             return pwd;
         }
 
-        private string hashToString(HashAlgorithm hasher, string input)
+        private static string hashToString(HashAlgorithm hasher, string input)
         {
             hasher.ComputeHash(Encoding.UTF8.GetBytes(input));
             byte[] re = hasher.Hash;
@@ -273,5 +117,67 @@ namespace WalrusBot
             return sb.ToString();
         }
         #endregion
+    }
+
+    class SheetsExpanded
+    {
+        private static SheetsService sheetService;
+        private static DriveService driveService;
+
+        public static void InitializeGServices(ref UserCredential credential, string appName)
+        {
+            sheetService = new SheetsService(new BaseClientService.Initializer()
+            {
+                HttpClientInitializer = credential,
+                ApplicationName = appName
+            });
+            driveService = new DriveService(new BaseClientService.Initializer()
+            {
+                HttpClientInitializer = credential,
+                ApplicationName = appName
+            });
+        }
+
+        private ConcurrentDictionary<string, SSheet> sSheets = new ConcurrentDictionary<string, SSheet>(Environment.ProcessorCount * 2, 503);  // capacity has to be a prime for some reason
+
+        private string sheetID = "";
+
+        public SheetsExpanded(string sid)
+        {
+            sheetID = sid;
+        }
+        
+
+        /*
+        private async Task PullAsync()  // reads the google sheet and puts its data into it. Probably triggered by a drive event on updates
+        {
+            SpreadsheetsResource.ValuesResource.GetRequest request = sheetService.Spreadsheets.Values.Get(sheetID, sheetRange);
+            ValueRange response = await request.ExecuteAsync();
+            IList<IList<object>> values = response.Values;
+
+            if (values != null && values.Count > 0)
+            {
+                for (int i = 0; i < values.Count; i++)
+                {
+                    foreach (string cell in values[i])
+                    {
+                        Console.Write(cell + "\t");
+                    }
+                    Console.Write("\n");
+                }
+            }
+        }
+
+        private async Task PushAsync()  // updates the google sheet values
+        {
+            await PullAsync();
+        }*/
+
+        class SSheet
+        {
+            private string sheetRange = "";
+            private bool transpose = false;
+
+        }
     }
 }
